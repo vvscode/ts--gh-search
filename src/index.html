@@ -6,9 +6,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>GitHub Search</title>
+  <style>
+    html,
+    body {
+      width: 100%;
+    }
+
+    .search__input {
+      width: 50%;
+      margin: 0 auto;
+      display: block;
+      font-size: 24px;
+      border-radius: 5px;
+      padding: 5px;
+    }
+
+  </style>
 </head>
 
 <body>
+  <input class="search__input" placeholder="What do you want to search?" />
+  <ol id="output"></ol>
 </body>
 
 </html>
