@@ -1,6 +1,8 @@
 import { fromEvent } from 'rxjs';
-import { map, debounceTime, switchMap } from 'rxjs/operators';
+import { map, debounceTime, switchMap, tap } from 'rxjs/operators';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+
+import './styles.css';
 
 type SearchResult = {
   name: string;
@@ -12,10 +14,14 @@ type SearchResult = {
   };
 };
 
-const searchInput = document.querySelector(
-  'input.search__input',
-) as HasEventTargetAddRemove<{ target: HTMLInputElement }>;
+const searchInput = document.querySelector('input') as HasEventTargetAddRemove<{
+  target: HTMLInputElement;
+}>;
 const outputWrapper = document.querySelector('#output') as HTMLInputElement;
+const searchLoader = document.querySelector('.search__loader') as HTMLElement;
+
+const showLoader = () => searchLoader.classList.remove('search__loader-hidden');
+const hideLoader = () => searchLoader.classList.add('search__loader-hidden');
 
 const githubSearch = (str: string): Promise<SearchResult[]> =>
   str
@@ -24,22 +30,39 @@ const githubSearch = (str: string): Promise<SearchResult[]> =>
         .then(data => data.items)
     : Promise.resolve([]);
 
-fromEvent(searchInput, 'keyup')
+let numberOfPendingRequests = 0;
+
+const search$ = fromEvent(searchInput, 'keyup')
   .pipe(debounceTime(500))
   .pipe(map(ev => ev.target.value))
+  .pipe(
+    tap(() => {
+      numberOfPendingRequests++;
+      if (numberOfPendingRequests > 0) {
+        showLoader();
+      }
+    }),
+  )
   .pipe(switchMap(str => githubSearch(str)))
-  .subscribe((results: SearchResult[]) => {
-    outputWrapper.innerHTML = results
-      .map(
-        (el: SearchResult) => `
+  .pipe(
+    tap(() => {
+      numberOfPendingRequests--;
+      if (numberOfPendingRequests < 1) {
+        hideLoader();
+      }
+    }),
+  );
+
+search$.subscribe((results: SearchResult[]) => {
+  outputWrapper.innerHTML = results
+    .map(
+      (el: SearchResult) => `
     <li>
       <a href="${el.html_url}" target="_blank">${el.name} by ${
-          el.owner.login
-        } (${el.stargazers_count} star(s))</a>
+        el.owner.login
+      } (${el.stargazers_count} star(s))</a>
     </li>
     `,
-      )
-      .join('');
-  });
-
-// .pipe(debounce(() => interval(1000)))
+    )
+    .join('');
+});
