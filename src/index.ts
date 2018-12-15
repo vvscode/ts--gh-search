@@ -20,8 +20,8 @@ const searchInput = document.querySelector('input') as HasEventTargetAddRemove<{
 const outputWrapper = document.querySelector('#output') as HTMLInputElement;
 const searchLoader = document.querySelector('.search__loader') as HTMLElement;
 
-const showLoader = () => searchLoader.classList.remove('search__loader-hidden');
-const hideLoader = () => searchLoader.classList.add('search__loader-hidden');
+const updateLoaderStatus = (show: boolean) =>
+  searchLoader.classList[show ? 'add' : 'remove']('search__loader-hidden');
 
 const githubSearch = (str: string): Promise<SearchResult[]> =>
   str
@@ -30,28 +30,8 @@ const githubSearch = (str: string): Promise<SearchResult[]> =>
         .then(data => data.items)
     : Promise.resolve([]);
 
-let numberOfPendingRequests = 0;
-
-const search$ = fromEvent(searchInput, 'keyup').pipe(
-  debounceTime(500),
-  map(ev => ev.target.value),
-  tap(() => {
-    numberOfPendingRequests++;
-    if (numberOfPendingRequests > 0) {
-      showLoader();
-    }
-  }),
-  switchMap(str => githubSearch(str)),
-  tap(() => {
-    numberOfPendingRequests--;
-    if (numberOfPendingRequests < 1) {
-      hideLoader();
-    }
-  }),
-);
-
-search$.subscribe((results: SearchResult[]) => {
-  outputWrapper.innerHTML = results
+const getRender = (targetEl = outputWrapper) => (results: SearchResult[]) =>
+  (targetEl.innerHTML = results
     .map(
       (el: SearchResult) => `
     <li>
@@ -61,5 +41,17 @@ search$.subscribe((results: SearchResult[]) => {
     </li>
     `,
     )
-    .join('');
-});
+    .join(''));
+
+let numberOfPendingRequests = 0;
+const render = getRender(outputWrapper);
+
+const search$ = fromEvent(searchInput, 'keyup').pipe(
+  debounceTime(500),
+  map(ev => ev.target.value),
+  tap(() => updateLoaderStatus(++numberOfPendingRequests > 0)),
+  switchMap(str => githubSearch(str)),
+  tap(() => updateLoaderStatus(--numberOfPendingRequests < 1)),
+);
+
+search$.subscribe(render);
