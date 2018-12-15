@@ -32,26 +32,23 @@ const githubSearch = (str: string): Promise<SearchResult[]> =>
 
 let numberOfPendingRequests = 0;
 
-const search$ = fromEvent(searchInput, 'keyup')
-  .pipe(debounceTime(500))
-  .pipe(map(ev => ev.target.value))
-  .pipe(
-    tap(() => {
-      numberOfPendingRequests++;
-      if (numberOfPendingRequests > 0) {
-        showLoader();
-      }
-    }),
-  )
-  .pipe(switchMap(str => githubSearch(str)))
-  .pipe(
-    tap(() => {
-      numberOfPendingRequests--;
-      if (numberOfPendingRequests < 1) {
-        hideLoader();
-      }
-    }),
-  );
+const search$ = fromEvent(searchInput, 'keyup').pipe(
+  debounceTime(500),
+  map(ev => ev.target.value),
+  tap(() => {
+    numberOfPendingRequests++;
+    if (numberOfPendingRequests > 0) {
+      showLoader();
+    }
+  }),
+  switchMap(str => githubSearch(str)),
+  tap(() => {
+    numberOfPendingRequests--;
+    if (numberOfPendingRequests < 1) {
+      hideLoader();
+    }
+  }),
+);
 
 search$.subscribe((results: SearchResult[]) => {
   outputWrapper.innerHTML = results
