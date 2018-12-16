@@ -30,14 +30,14 @@ export const getLoaderUpdater = (loaderElement: HTMLElement) => (
 export const getPipedObservable = (
   src$: Observable<string>,
   loaderUpdater = (x: boolean) => {},
-  searchFuncation: (s: string) => Promise<SearchResult[]>,
+  searchFunction: (s: string) => Promise<SearchResult[]>,
   scheduler?: Scheduler | undefined,
 ) => {
   let numberOfPendingRequests = 0;
   return src$.pipe(
     debounceTime(500, scheduler),
     tap(() => loaderUpdater(++numberOfPendingRequests > 0)),
-    switchMap(str => searchFuncation(str)),
+    switchMap(str => searchFunction(str)),
     tap(() => loaderUpdater(--numberOfPendingRequests < 1)),
   );
 };
