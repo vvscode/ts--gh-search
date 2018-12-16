@@ -1,4 +1,6 @@
+import { debounceTime, switchMap, tap } from 'rxjs/operators';
 import { SearchResult } from './types/SearchResult';
+import { Scheduler, Observable } from 'rxjs';
 
 export const githubSearch = (str: string): Promise<SearchResult[]> =>
   str
@@ -22,4 +24,20 @@ export const getRender = (targetEl: HTMLElement) => (results: SearchResult[]) =>
 
 export const getLoaderUpdater = (loaderElement: HTMLElement) => (
   show: boolean,
-) => loaderElement.classList[show ? 'add' : 'remove']('search__loader-hidden');
+): void =>
+  loaderElement.classList[show ? 'add' : 'remove']('search__loader-hidden');
+
+export const getPipedObservable = (
+  src$: Observable<string>,
+  loaderUpdater = (x: boolean) => {},
+  searchFuncation: (s: string) => Promise<SearchResult[]>,
+  scheduler?: Scheduler | undefined,
+) => {
+  let numberOfPendingRequests = 0;
+  return src$.pipe(
+    debounceTime(500, scheduler),
+    tap(() => loaderUpdater(++numberOfPendingRequests > 0)),
+    switchMap(str => searchFuncation(str)),
+    tap(() => loaderUpdater(--numberOfPendingRequests < 1)),
+  );
+};
